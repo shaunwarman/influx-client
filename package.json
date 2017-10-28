@@ -1,0 +1,19 @@
+{
+  "name": "influx-client",
+  "version": "1.0.0",
+  "description": "An influxdb nodejs client",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "nodejs",
+    "influx",
+    "influxdb"
+  ],
+  "author": "Shaun Warman",
+  "license": "MIT",
+  "devDependencies": {
+    "tape": "^4.8.0"
+  }
+}
