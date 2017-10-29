@@ -1,35 +1,69 @@
-const InfluxClient = require('./lib/influx');
+const Http = require('http');
 const QS = require('querystring');
 
-class Client {
+class InfluxClient {
   constructor(options = {}) {
     const {buffer, client, event, host, port, db} = options;
 
     this.buffer = buffer || 1;
-    this.db = db  || 'mydb';
+    this.db = db || 'mydb';
     this.event = event || 'event';
     this.host = host || '127.0.0.1';
     this.port = port || 8086;
-    this.writer = new InfluxClient(options);
   }
 
-  getUrl() {
-    const qs = {
-      db: this.db,
-      username: 'admin',
-      password: 'admin',
+  setup(msg) {
+    return {
+      hostname: this.host,
+      port: this.port,
+      path: `/write?db=${this.db}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(msg)
+      }
     };
-
-    return `https://${this.host}:${this.port}/write?${QS.stringify(qs)}`;
   }
-
-  read() {}
 
   write(data, callback) {
-    const url = this.getUrl();
+    const point = this._format(data);
+    const options = this.setup(point);
 
-    this.writer.write(url, data, callback);
+    const req = Http.request(options, (res) => {
+      let response = null;
+      res.setEncoding('utf8');
+      res.on('data', (chunk) => {
+        response += chunk;
+      });
+      res.on('end', () => {
+        callback(null, response);
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error(e);
+      return callback(e);
+    });
+
+    req.write(point);
+    req.end();
+  }
+
+  _format(data) {
+    let values = '';
+
+    Object.keys(data).forEach((key, index) => {
+      if (index === 0) {
+        values += `${key}="${data[key]}"`;
+      } else {
+        values += `,${key}="${data[key]}"`;
+      }
+    });
+
+    Debug(`event ${values} ${Date.now()}`);
+
+    return `event ${values} ${Date.now()} \n`;
   }
 }
 
-module.exports = Client;
+module.exports = InfluxClient;
